@@ -12,7 +12,7 @@
 
 <body style="overflow: hidden;">
   <div class="scene">
-    <video class="bg-img" id="bgImg" autoplay playsinline src="assets/export1-Britt.mp4"></video>
+    <video class="bg-img" id="bgImg" autoplay src="assets/export1-Britt.mp4"></video>
 
 
     <div class="tl-bar">
@@ -82,14 +82,18 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script>
-    const video = document.getElementById('bgImg');
-    if (video) {
-      video.play().catch(() => {
-        console.log('Autoplay blocked, retrying...');
-      });
-      document.addEventListener('click', () => {
-        if (video.paused) video.play();
-      }, { once: true });
+    const introVideo = document.getElementById('bgImg');
+
+    if (introVideo) {
+      const startVideoOnTap = () => {
+        introVideo.play().catch(() => {
+          // Browser may still require another explicit interaction.
+        });
+      };
+
+      introVideo.addEventListener('click', startVideoOnTap);
+      introVideo.addEventListener('touchend', startVideoOnTap, { passive: true });
+      document.addEventListener('pointerdown', startVideoOnTap, { once: true });
     }
   </script>
   <script src="js/script.js"></script>
