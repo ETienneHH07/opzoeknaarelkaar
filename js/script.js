@@ -1,9 +1,9 @@
     const chapters = [
-      { label: 'het begin', pct: 0 },
-      { label: 'in gesprek', pct: 25 },
-      { label: 'het echte probleem', pct: 50 },
-      { label: 'vertrouwen', pct: 75 },
-      { label: 'ons verhaal', pct: 100 },
+      { label: 'het begin', pct: 0, time: 0 },
+      { label: 'in gesprek', pct: 22.5, time: 80 },
+      { label: 'het echte probleem', pct: 45, time: 118 },
+      { label: 'vertrouwen', pct: 67.5, time: 257 },
+      { label: 'ons verhaal', pct: 90, time: 317 },
     ];
 
     const track = document.getElementById('track');
@@ -13,6 +13,9 @@
     const ticks = document.getElementById('ticks');
     const chapterName = document.getElementById('chapterName');
     const video = document.getElementById('bgImg');
+    const ytContainer = document.getElementById('ytBg');
+    const youtubeVideoId = (document.body.dataset.youtubeId || '').trim();
+    const mediaMode = youtubeVideoId && ytContainer ? 'youtube' : 'native';
     const navButtons = document.querySelectorAll('.nav-buttons .nav-btn');
     const topDotLabel = document.querySelector('.tl-ring-dot-top span');
     const rightDotLabel = document.querySelector('.tl-ring-dot-right span');
@@ -20,6 +23,8 @@
     let currentPct = 0;
     let dragging = false;
     const timelineStorageKey = 'indexTimelinePct';
+    let ytPlayer = null;
+    let ytTickTimer = null;
 
     const defaultTopLabel = topDotLabel ? topDotLabel.textContent : '';
     const defaultRightLabel = rightDotLabel ? rightDotLabel.textContent : '';
@@ -34,8 +39,52 @@
       return activeIndex;
     }
 
-    function getSnappedTickPct(pct) {
-      return chapters[getActiveTickIndex(pct)].pct;
+    function getActiveTickIndexFromTime(timeSeconds) {
+      let activeIndex = 0;
+      chapters.forEach((ch, i) => {
+        if (timeSeconds >= ch.time) activeIndex = i;
+      });
+      return activeIndex;
+    }
+
+    function interpolateRange(value, inMin, inMax, outMin, outMax) {
+      if (inMax === inMin) return outMin;
+      const progress = (value - inMin) / (inMax - inMin);
+      return outMin + (outMax - outMin) * progress;
+    }
+
+    function getTimelinePctFromTime(timeSeconds, duration) {
+      if (!Number.isFinite(duration) || duration <= 0) return 0;
+
+      const clampedTime = Math.max(0, Math.min(duration, timeSeconds));
+
+      for (let index = 0; index < chapters.length - 1; index += 1) {
+        const startChapter = chapters[index];
+        const endChapter = chapters[index + 1];
+        if (clampedTime <= endChapter.time) {
+          return interpolateRange(clampedTime, startChapter.time, endChapter.time, startChapter.pct, endChapter.pct);
+        }
+      }
+
+      const lastChapter = chapters[chapters.length - 1];
+      return interpolateRange(clampedTime, lastChapter.time, duration, lastChapter.pct, 100);
+    }
+
+    function getTimeFromTimelinePct(pct, duration) {
+      if (!Number.isFinite(duration) || duration <= 0) return 0;
+
+      const clampedPct = Math.max(0, Math.min(100, pct));
+
+      for (let index = 0; index < chapters.length - 1; index += 1) {
+        const startChapter = chapters[index];
+        const endChapter = chapters[index + 1];
+        if (clampedPct <= endChapter.pct) {
+          return interpolateRange(clampedPct, startChapter.pct, endChapter.pct, startChapter.time, endChapter.time);
+        }
+      }
+
+      const lastChapter = chapters[chapters.length - 1];
+      return interpolateRange(clampedPct, lastChapter.pct, 100, lastChapter.time, duration);
     }
 
     function persistTimelinePosition(pct) {
@@ -56,6 +105,132 @@
       } catch (err) {
         return 0;
       }
+    }
+
+    function getMediaDuration() {
+      if (mediaMode === 'youtube') {
+        if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return 0;
+        const duration = ytPlayer.getDuration();
+        return Number.isFinite(duration) ? duration : 0;
+      }
+
+      if (!video || !Number.isFinite(video.duration)) return 0;
+      return video.duration;
+    }
+
+    function getMediaCurrentTime() {
+      if (mediaMode === 'youtube') {
+        if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return 0;
+        const current = ytPlayer.getCurrentTime();
+        return Number.isFinite(current) ? current : 0;
+      }
+
+      if (!video || !Number.isFinite(video.currentTime)) return 0;
+      return video.currentTime;
+    }
+
+    function setMediaCurrentTime(timeSeconds) {
+      if (!Number.isFinite(timeSeconds)) return;
+
+      if (mediaMode === 'youtube') {
+        if (!ytPlayer || typeof ytPlayer.seekTo !== 'function') return;
+        ytPlayer.seekTo(timeSeconds, true);
+        return;
+      }
+
+      if (!video) return;
+      video.currentTime = timeSeconds;
+    }
+
+    function playMedia() {
+      if (mediaMode === 'youtube') {
+        if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+          ytPlayer.playVideo();
+        }
+        return;
+      }
+
+      if (video && typeof video.play === 'function') {
+        video.play().catch(() => {
+          // Browser may still require user interaction.
+        });
+      }
+    }
+
+    function onMediaTimeUpdate(callback) {
+      if (mediaMode === 'youtube') {
+        if (ytTickTimer) clearInterval(ytTickTimer);
+        ytTickTimer = setInterval(callback, 250);
+        return;
+      }
+
+      if (video) {
+        video.addEventListener('timeupdate', callback);
+      }
+    }
+
+    function loadYouTubeApi() {
+      if (window.YT && window.YT.Player) {
+        return Promise.resolve();
+      }
+
+      return new Promise(resolve => {
+        const existingScript = document.getElementById('yt-iframe-api');
+        if (!existingScript) {
+          const tag = document.createElement('script');
+          tag.id = 'yt-iframe-api';
+          tag.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(tag);
+        }
+
+        const previousReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          if (typeof previousReady === 'function') {
+            previousReady();
+          }
+          resolve();
+        };
+      });
+    }
+
+    function setupYouTubeBackground(initialPct) {
+      if (mediaMode !== 'youtube') return;
+      if (!ytContainer) return;
+
+      if (video) {
+        video.pause();
+        video.style.display = 'none';
+      }
+
+      ytContainer.classList.add('is-active');
+
+      loadYouTubeApi().then(() => {
+        if (!(window.YT && window.YT.Player)) return;
+
+        ytPlayer = new window.YT.Player('ytBg', {
+          width: '100%',
+          height: '100%',
+          videoId: youtubeVideoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+          },
+          events: {
+            onReady: () => {
+              const duration = getMediaDuration();
+              if (duration) {
+                setMediaCurrentTime((initialPct / 100) * duration);
+              }
+              playMedia();
+            },
+          },
+        });
+      });
     }
 
     const chapterButtonConfig = [
@@ -148,16 +323,18 @@
     function render(p) {
       currentPct = Math.max(0, Math.min(100, p));
       filled.style.width = currentPct + '%';
-      handle.style.left = currentPct + '%';
-      handleRing.style.left = currentPct + '%';
+      const activeIndex = getActiveTickIndex(currentPct);
+      const snappedPct = chapters[activeIndex].pct;
+      handle.style.left = snappedPct + '%';
+      handleRing.style.left = snappedPct + '%';
       updateDotLabels(currentPct);
 
       // Video synchronisatie
-      if (video && video.duration) {
-        video.currentTime = (currentPct / 100) * video.duration;
+      const duration = getMediaDuration();
+      if (duration > 0) {
+        setMediaCurrentTime(getTimeFromTimelinePct(currentPct, duration));
       }
 
-      const activeIndex = getActiveTickIndex(currentPct);
       const ch = chapters[activeIndex];
       if (chapterName) chapterName.textContent = ch.label;
       updateBottomNavButtons(currentPct);
@@ -169,7 +346,7 @@
       });
     }
 
-    function seek(p) { render(getSnappedTickPct(p)); }
+    function seek(p) { render(p); }
 
     function pctFromEvent(e) {
       const rect = track.getBoundingClientRect();
@@ -184,26 +361,27 @@
 
 
 
-    document.addEventListener('mousemove', e => { if (dragging) render(getSnappedTickPct(pctFromEvent(e))); });
-    document.addEventListener('touchmove', e => { if (dragging) render(getSnappedTickPct(pctFromEvent(e))); }, { passive: true });
+    document.addEventListener('mousemove', e => { if (dragging) render(pctFromEvent(e)); });
+    document.addEventListener('touchmove', e => { if (dragging) render(pctFromEvent(e)); }, { passive: true });
     document.addEventListener('mouseup', () => { dragging = false; });
     document.addEventListener('touchend', () => { dragging = false; });
 
-    track.addEventListener('click', e => { if (!dragging) render(pctFromEvent(e)); });
+    track.addEventListener('click', e => { if (!dragging) seek(pctFromEvent(e)); });
 
     // Video timeupdate - synchroniseer timeline met video playback
-    if (video) {
-      video.addEventListener('timeupdate', () => {
-        if (!dragging && video.duration) {
-          const pct = (video.currentTime / video.duration) * 100;
+    onMediaTimeUpdate(() => {
+        const duration = getMediaDuration();
+        if (!dragging && duration > 0) {
+          const currentTime = getMediaCurrentTime();
+          const pct = getTimelinePctFromTime(currentTime, duration);
           currentPct = Math.max(0, Math.min(100, pct));
           filled.style.width = currentPct + '%';
-          const snappedPct = getSnappedTickPct(currentPct);
+          const activeIndex = getActiveTickIndexFromTime(currentTime);
+          const snappedPct = chapters[activeIndex].pct;
           handle.style.left = snappedPct + '%';
           handleRing.style.left = snappedPct + '%';
           updateDotLabels(currentPct);
 
-          const activeIndex = getActiveTickIndex(currentPct);
           const ch = chapters[activeIndex];
           if (chapterName) chapterName.textContent = ch.label;
           updateBottomNavButtons(currentPct);
@@ -218,44 +396,38 @@
             updateNextChapterButton();
           }
         }
-      });
-    }
+    });
 
     // Next Chapter Button
     const nextBtn = document.getElementById('nextBtn');
     const nextChapterName = document.getElementById('nextChapterName');
 
     function updateNextChapterButton() {
-      const currentIndex = getActiveTickIndex(currentPct);
-      const nextIndex = Math.min(currentIndex + 1, chapters.length - 1);
-      const nextChapter = chapters[nextIndex];
-      
       if (nextChapterName) {
-        nextChapterName.textContent = nextChapter.label;
+        nextChapterName.textContent = 'terug naar de start';
       }
-      
+
       if (nextBtn) {
-        nextBtn.disabled = currentIndex >= chapters.length - 1;
+        nextBtn.disabled = false;
+        nextBtn.title = 'Terug naar start';
       }
     }
 
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
-        const currentIndex = getActiveTickIndex(currentPct);
-        if (currentIndex < chapters.length - 1) {
-          seek(chapters[currentIndex + 1].pct);
-          updateNextChapterButton();
-        }
+        window.location.href = 'index.html';
       });
     }
 
     const initialTimelinePct = readTimelinePosition();
     render(initialTimelinePct);
 
-    if (video) {
+    if (mediaMode === 'youtube') {
+      setupYouTubeBackground(initialTimelinePct);
+    } else if (video) {
       const syncVideoToSavedPosition = () => {
         if (!video.duration) return;
-        video.currentTime = (initialTimelinePct / 100) * video.duration;
+        setMediaCurrentTime(getTimeFromTimelinePct(initialTimelinePct, video.duration));
       };
 
       if (video.duration) {
@@ -264,6 +436,10 @@
         video.addEventListener('loadedmetadata', syncVideoToSavedPosition, { once: true });
       }
     }
+
+    document.addEventListener('pointerdown', () => {
+      playMedia();
+    }, { once: true });
 
     window.addEventListener('beforeunload', () => {
       persistTimelinePosition(currentPct);
