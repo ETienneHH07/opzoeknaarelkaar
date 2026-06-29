@@ -856,7 +856,7 @@
       vertical-align: middle;
     }
 
-    body.show-video-intro [data-intro-badge] {
+    body.show-video-intro .intro-target {
       position: relative;
       z-index: 170;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.65), 0 0 24px rgba(255, 255, 255, 0.35);
@@ -864,11 +864,9 @@
       animation: introPulse 1.8s ease-in-out infinite;
     }
 
-    body.show-video-intro [data-intro-badge]::after {
+    body.show-video-intro .intro-target::after {
       content: attr(data-intro-badge);
       position: absolute;
-      top: -13px;
-      right: -13px;
       width: 24px;
       height: 24px;
       border-radius: 999px;
@@ -880,6 +878,30 @@
       text-align: center;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
       pointer-events: none;
+    }
+
+    body.show-video-intro .intro-target--timeline::after {
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    body.show-video-intro .intro-target--nav::after {
+      top: 50%;
+      left: -14px;
+      transform: translate(-100%, -50%);
+    }
+
+    body.show-video-intro .intro-target--back::after {
+      top: 50%;
+      right: -14px;
+      transform: translate(100%, -50%);
+    }
+
+    body.show-video-intro .intro-target--map::after {
+      top: -14px;
+      left: -14px;
+      transform: translate(-10%, -10%);
     }
 
     @keyframes introPulse {
