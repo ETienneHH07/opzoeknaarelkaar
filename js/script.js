@@ -1,8 +1,8 @@
     const chapters = [
       { label: 'het begin', pct: 0, time: 0 },
       { label: 'in gesprek', pct: 22.5, time: 80 },
-      { label: 'het echte probleem', pct: 45, time: 118 },
-      { label: 'vertrouwen', pct: 67.5, time: 257 },
+      { label: 'het echte probleem', pct: 45, time: 119 },
+      { label: 'vertrouwen', pct: 67.5, time: 258 },
       { label: 'ons verhaal', pct: 90, time: 317 },
     ];
 
@@ -22,6 +22,10 @@
 
     let currentPct = 0;
     let dragging = false;
+    let previousChapterIndex = 0;
+    let chapterSwitchOverlayShown = false;
+    let isInitializing = true; // Flag om aan te geven dat we net laden
+    let isReturningFromPage = false; // Flag voor teruggekeerd van pagina
     const timelineStorageKey = 'indexTimelinePct';
     let ytPlayer = null;
     let ytTickTimer = null;
@@ -40,6 +44,88 @@
       }
       if (nextBtn) {
         nextBtn.disabled = true;
+      }
+    }
+
+    function showChapterSwitchOverlay(previousIndex, currentIndex) {
+      if (currentIndex === 0 || chapterSwitchOverlayShown) return;
+      
+      chapterSwitchOverlayShown = true;
+      const chapterSwitchOverlay = document.getElementById('chapterSwitchOverlay');
+      const chapterSwitchTitle = document.getElementById('chapterSwitchTitle');
+      const chapterSwitchPage1 = document.getElementById('chapterSwitchPage1');
+      const chapterSwitchPage2 = document.getElementById('chapterSwitchPage2');
+      const chapterSwitchContinue = document.getElementById('chapterSwitchContinue');
+
+      if (!chapterSwitchOverlay) return;
+
+      // Pauzeer de video
+      pauseMedia();
+
+      // Update de titel
+      if (chapterSwitchTitle) {
+        const nextChapter = chapters[currentIndex];
+        chapterSwitchTitle.textContent = `Welkom bij het hoofdstuk "${nextChapter.label}"`;
+      }
+
+      // Zet de buttons voor de vorige chapter
+      const previousConfig = chapterButtonConfig[previousIndex] || [];
+      
+      if (chapterSwitchPage1 && previousConfig[0]) {
+        chapterSwitchPage1.textContent = previousConfig[0].text;
+        chapterSwitchPage1.style.display = '';
+        chapterSwitchPage1.onclick = () => {
+          try {
+            // Bewaar de exacte positie waar we nu zijn
+            sessionStorage.setItem(timelineStorageKey, String(currentPct));
+          } catch (err) {
+            // Ignore storage errors.
+          }
+          window.location.href = previousConfig[0].href;
+        };
+      } else if (chapterSwitchPage1) {
+        chapterSwitchPage1.style.display = 'none';
+      }
+
+      if (chapterSwitchPage2 && previousConfig[1]) {
+        chapterSwitchPage2.textContent = previousConfig[1].text;
+        chapterSwitchPage2.style.display = '';
+        chapterSwitchPage2.onclick = () => {
+          try {
+            // Bewaar de exacte positie waar we nu zijn
+            sessionStorage.setItem(timelineStorageKey, String(currentPct));
+          } catch (err) {
+            // Ignore storage errors.
+          }
+          window.location.href = previousConfig[1].href;
+        };
+      } else if (chapterSwitchPage2) {
+        chapterSwitchPage2.style.display = 'none';
+      }
+
+      // Continue button
+      if (chapterSwitchContinue) {
+        chapterSwitchContinue.onclick = () => {
+          chapterSwitchOverlay.hidden = true;
+          chapterSwitchOverlayShown = false;
+          playMedia();
+        };
+      }
+
+      // Toon het overlay
+      chapterSwitchOverlay.hidden = false;
+    }
+
+    function pauseMedia() {
+      if (mediaMode === 'youtube') {
+        if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+          ytPlayer.pauseVideo();
+        }
+        return;
+      }
+
+      if (video && typeof video.pause === 'function') {
+        video.pause();
       }
     }
 
@@ -159,6 +245,12 @@
         if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
           ytPlayer.playVideo();
         }
+        return;
+      }
+
+      // Als we net teruggekeerd zijn, niet automatisch afspelen
+      if (isReturningFromPage) {
+        isReturningFromPage = false;
         return;
       }
 
@@ -341,6 +433,15 @@
       currentPct = Math.max(0, Math.min(100, p));
       filled.style.width = currentPct + '%';
       const activeIndex = getActiveTickIndex(currentPct);
+      
+      // Detecteer chapter-wissel
+      if (activeIndex !== previousChapterIndex && activeIndex > 0 && !dragging) {
+        showChapterSwitchOverlay(previousChapterIndex, activeIndex);
+        previousChapterIndex = activeIndex;
+      } else if (activeIndex !== previousChapterIndex) {
+        previousChapterIndex = activeIndex;
+      }
+      
       const snappedPct = chapters[activeIndex].pct;
       handle.style.left = snappedPct + '%';
       handleRing.style.left = snappedPct + '%';
@@ -388,12 +489,21 @@
     // Video timeupdate - synchroniseer timeline met video playback
     onMediaTimeUpdate(() => {
         const duration = getMediaDuration();
-        if (!dragging && duration > 0) {
+        if (!dragging && duration > 0 && !isInitializing) {
           const currentTime = getMediaCurrentTime();
           const pct = getTimelinePctFromTime(currentTime, duration);
           currentPct = Math.max(0, Math.min(100, pct));
           filled.style.width = currentPct + '%';
           const activeIndex = getActiveTickIndexFromTime(currentTime);
+          
+          // Detecteer chapter-wissel
+          if (activeIndex !== previousChapterIndex && activeIndex > 0) {
+            showChapterSwitchOverlay(previousChapterIndex, activeIndex);
+            previousChapterIndex = activeIndex;
+          } else if (activeIndex !== previousChapterIndex) {
+            previousChapterIndex = activeIndex;
+          }
+          
           const snappedPct = chapters[activeIndex].pct;
           handle.style.left = snappedPct + '%';
           handleRing.style.left = snappedPct + '%';
@@ -432,12 +542,23 @@
 
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
+        try {
+          sessionStorage.removeItem(timelineStorageKey);
+        } catch (err) {
+          // Ignore storage errors.
+        }
         window.location.href = 'index.html';
       });
     }
 
     const initialTimelinePct = readTimelinePosition();
     render(initialTimelinePct);
+    
+    // Controleer of we teruggekeerd zijn van een pagina
+    isReturningFromPage = initialTimelinePct > 0;
+    
+    // Stel de previousChapterIndex in op basis van de initiële positie
+    previousChapterIndex = getActiveTickIndex(initialTimelinePct);
 
     if (mediaMode === 'youtube') {
       setupYouTubeBackground(initialTimelinePct);
@@ -446,7 +567,10 @@
 
       const syncVideoToSavedPosition = () => {
         if (!video.duration) return;
-        setMediaCurrentTime(getTimeFromTimelinePct(initialTimelinePct, video.duration));
+        const targetTime = getTimeFromTimelinePct(initialTimelinePct, video.duration);
+        setMediaCurrentTime(targetTime);
+        // Pauzeer direct nadat we de positie hebben gezet
+        pauseMedia();
       };
 
       if (video.duration) {
@@ -458,7 +582,16 @@
 
     document.addEventListener('pointerdown', () => {
       playMedia();
+      // Stop initializing na eerste interactie
+      isInitializing = false;
     }, { once: true });
+
+    // Stop initializing flag na vertraging zodat updates kunnen beginnen
+    setTimeout(() => {
+      if (isInitializing) {
+        isInitializing = false;
+      }
+    }, 1000);
 
     window.addEventListener('beforeunload', () => {
       persistTimelinePosition(currentPct);

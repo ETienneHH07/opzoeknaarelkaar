@@ -7,7 +7,7 @@
   <title>Wie zijn wij?</title>
   <link rel="stylesheet" href="css/reset.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/style.css?v=20260630" />
 </head>
 
 <body style="overflow: hidden;" data-youtube-id="g_rw-l4k1Fc">
@@ -102,6 +102,27 @@
       </div>
     </div>
 
+    <div id="chapterSwitchOverlay" class="chapter-switch-overlay" hidden>
+      <div class="chapter-switch-card" role="dialog" aria-modal="true">
+        <h2 id="chapterSwitchTitle">Nieuw Hoofdstuk</h2>
+        <p id="chapterSwitchDescription">Wat wil je doen?</p>
+        
+        <div class="chapter-switch-options">
+          <div class="chapter-switch-prev-pages">
+            <p class="chapter-switch-label">Bekijk de verdiepende pagina's van het vorige hoofdstuk:</p>
+            <div class="chapter-switch-buttons">
+              <button id="chapterSwitchPage1" class="chapter-switch-btn chapter-switch-page-btn" type="button"></button>
+              <button id="chapterSwitchPage2" class="chapter-switch-btn chapter-switch-page-btn" type="button"></button>
+            </div>
+          </div>
+
+          <div class="chapter-switch-separator">of</div>
+
+          <button id="chapterSwitchContinue" class="chapter-switch-btn chapter-switch-continue-btn" type="button">Volgende Hoofdstuk Starten</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -157,7 +178,7 @@
       });
     }
   </script>
-  <script src="js/script.js"></script>
+  <script src="js/script.js?v=20260630"></script>
 </body>
 
 </html>
