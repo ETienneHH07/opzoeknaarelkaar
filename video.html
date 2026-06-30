@@ -93,6 +93,15 @@
       </div>
     </div>
 
+    <div id="videoEndOverlay" class="video-end-overlay" hidden>
+      <div class="video-end-card">
+        <p class="video-end-kicker">Einde van de video</p>
+        <h2>Bekijk het einde</h2>
+        <p>Klik op de knop hieronder om naar de eindpagina te gaan.</p>
+        <button id="videoEndButton" type="button">Naar einde</button>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -100,6 +109,8 @@
     const introVideo = document.getElementById('bgImg');
     const videoIntroOverlay = document.getElementById('videoIntroOverlay');
     const videoIntroClose = document.getElementById('videoIntroClose');
+    const videoEndOverlay = document.getElementById('videoEndOverlay');
+    const videoEndButton = document.getElementById('videoEndButton');
     const videoIntroSeenKey = 'videoIntroSeenV2';
     const forceIntro = new URLSearchParams(window.location.search).get('intro') === '1';
 
@@ -137,6 +148,12 @@
         } catch (err) {
           // Ignore storage errors.
         }
+      });
+    }
+
+    if (videoEndButton) {
+      videoEndButton.addEventListener('click', () => {
+        window.location.href = 'ending.html';
       });
     }
   </script>

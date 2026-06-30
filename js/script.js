@@ -25,11 +25,23 @@
     const timelineStorageKey = 'indexTimelinePct';
     let ytPlayer = null;
     let ytTickTimer = null;
+    let endingButtonShown = false;
 
     const defaultTopLabel = topDotLabel ? topDotLabel.textContent : '';
     const defaultRightLabel = rightDotLabel ? rightDotLabel.textContent : '';
     const topDotEl = document.querySelector('.tl-ring-dot-top');
     const rightDotEl = document.querySelector('.tl-ring-dot-right');
+
+    function showEndingButton() {
+      if (endingButtonShown) return;
+      endingButtonShown = true;
+      if (videoEndOverlay) {
+        videoEndOverlay.hidden = false;
+      }
+      if (nextBtn) {
+        nextBtn.disabled = true;
+      }
+    }
 
     function getActiveTickIndex(pct) {
       let activeIndex = 0;
@@ -228,6 +240,11 @@
               }
               playMedia();
             },
+            onStateChange: event => {
+              if (event.data === window.YT.PlayerState.ENDED) {
+                showEndingButton();
+              }
+            },
           },
         });
       });
@@ -425,6 +442,8 @@
     if (mediaMode === 'youtube') {
       setupYouTubeBackground(initialTimelinePct);
     } else if (video) {
+      video.addEventListener('ended', showEndingButton);
+
       const syncVideoToSavedPosition = () => {
         if (!video.duration) return;
         setMediaCurrentTime(getTimeFromTimelinePct(initialTimelinePct, video.duration));

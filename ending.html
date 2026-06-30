@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Einde</title>
+	<style>
+		:root {
+			color-scheme: dark;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+		}
+
+		body {
+			font-family: Arial, Helvetica, sans-serif;
+			background:
+				radial-gradient(circle at top, rgba(200, 169, 110, 0.18), transparent 35%),
+				linear-gradient(180deg, #0c0f14 0%, #050608 100%);
+			color: #fff;
+			display: grid;
+			place-items: center;
+			overflow: hidden;
+		}
+
+		.ending-card {
+			width: min(720px, calc(100vw - 32px));
+			padding: 36px 28px;
+			border: 1px solid rgba(255, 255, 255, 0.12);
+			border-radius: 20px;
+			background: rgba(10, 13, 18, 0.84);
+			box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+			text-align: center;
+			backdrop-filter: blur(8px);
+		}
+
+		.ending-kicker {
+			margin: 0 0 10px;
+			font-size: 13px;
+			letter-spacing: 0.22em;
+			text-transform: uppercase;
+			color: rgba(255, 255, 255, 0.62);
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(42px, 8vw, 82px);
+			line-height: 0.95;
+			text-transform: uppercase;
+			font-family: 'Roboto Condensed', Arial, sans-serif;
+		}
+
+		p {
+			margin: 18px auto 0;
+			max-width: 52ch;
+			font-size: 18px;
+			line-height: 1.55;
+			color: rgba(255, 255, 255, 0.82);
+		}
+
+		.actions {
+			margin-top: 28px;
+			display: flex;
+			gap: 12px;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
+
+		a {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 170px;
+			padding: 12px 18px;
+			border-radius: 999px;
+			border: 1px solid rgba(255, 255, 255, 0.42);
+			color: #fff;
+			text-decoration: none;
+			font-weight: 700;
+			letter-spacing: 0.01em;
+			transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+		}
+
+		a.primary {
+			background: #c8a96e;
+			border-color: #c8a96e;
+			color: #121212;
+		}
+
+		a:hover {
+			transform: translateY(-1px);
+			border-color: rgba(255, 255, 255, 0.8);
+		}
+
+		a.primary:hover {
+			background: #d5b982;
+			border-color: #d5b982;
+		}
+	</style>
+</head>
+
+<body>
+	<main class="ending-card">
+		<p class="ending-kicker">Einde van de video</p>
+		<h1>Bedankt voor het kijken</h1>
+		<p>Je bent nu aan het einde gekomen. Je kunt terug naar de startpagina of de video opnieuw bekijken.</p>
+		<div class="actions">
+			<a class="primary" href="index.html">Terug naar start</a>
+			<a href="video.html">Bekijk video opnieuw</a>
+		</div>
+	</main>
+</body>
+
+</html>

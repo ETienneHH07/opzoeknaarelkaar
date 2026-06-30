@@ -932,6 +932,74 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
+    .video-end-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 170;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(3px);
+    }
+
+    .video-end-overlay[hidden] {
+      display: none;
+    }
+
+    .video-end-card {
+      width: min(460px, 100%);
+      padding: 26px 22px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 14px;
+      background: rgba(7, 10, 14, 0.92);
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+    }
+
+    .video-end-kicker {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .video-end-card h2 {
+      margin: 10px 0 0;
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: 30px;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .video-end-card p {
+      margin: 12px 0 0;
+      font-size: 16px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .video-end-card button {
+      margin-top: 18px;
+      padding: 11px 18px;
+      border: 1px solid #c8a96e;
+      border-radius: 999px;
+      background: #c8a96e;
+      color: #111;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .video-end-card button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
     @media (max-width: 640px) {
       .video-intro-card {
         padding: 18px;
@@ -943,6 +1011,18 @@
 
       .video-intro-card p,
       .video-intro-card ul {
+        font-size: 15px;
+      }
+
+      .video-end-card {
+        padding: 22px 18px;
+      }
+
+      .video-end-card h2 {
+        font-size: 26px;
+      }
+
+      .video-end-card p {
         font-size: 15px;
       }
     }
